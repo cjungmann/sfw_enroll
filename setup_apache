@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+# Check for and load bash_utils if not already loaded
+if ! type -t cecho > /dev/null; then
+    source bash_utils
+fi
+
+# Check for and load bash_mysql if not already loaded
+if ! type -t database_exists > /dev/null; then
+    source bash_mysql
+fi
+
+get_current_directory_name()
+{
+    local IFS=$'/'
+    local -a pparts=( $PWD )
+    local -i part="${#pparts[@]}"
+    echo "${pparts[$(( --part ))]}"
+}
+
+name_in_hosts()
+{
+    local hostname="$1"
+    local parts=( $( grep "${hostname}\$" /etc/hosts) )
+    [ "${#parts[@]}" -ne 0 ]
+}
+
+add_to_etc_hosts()
+{
+    if ! name_in_hosts "${AppDirName}"; then
+        local -a lhost_parts=( $( grep "localhost" /etc/hosts) )
+        if [ "${#lhost_parts[@]}" -ne 0 ]; then
+            cecho "Adding '${lhost_parts[0]}  ${AppDirName}' to /etc/hosts"
+            sed -i "$ a \\${lhost_parts[0]}  ${AppDirName}" "/etc/hosts"
+        fi
+    fi
+}
+
+remove_from_etc_hosts()
+{
+    cecho "Looking for ${AppDirName} in /etc/hosts"
+    if name_in_hosts "${AppDirName}"; then
+        cecho "Removing '${AppDirName}' from /etc/hosts"
+        sed -i "/${AppDirName}\$/d" "/etc/hosts"
+    fi
+}
+
+make_conf()
+{
+    local -a lines=()
+    local sitepath="${PWD}/site"
+
+    lines+=( "<VirtualHost *:80>"              )
+    lines+=( "   DocumentRoot   ${PWD}/site"   )
+    lines+=( "   DirectoryIndex login.srm"     )
+    lines+=( "   ServerName     ${AppDirName}" )
+
+    # Add extra server names as passed in through the command line:
+    local alias
+    for alias in "$@"; do
+        lines+=( "   ServerAlias    ${alias}" )
+    done
+
+    lines+=( "</VirtualHost>"                  )
+
+    local IFS=$'\n'
+
+    echo "${lines[*]}"
+}
+
+install()
+{
+    if is_root; then
+        local conf_file_text=$( make_conf "${AppDirName}.cpjj.net" )
+        echo "$conf_file_text" > "${ConfPath}"
+        a2ensite "${AppDirName}"
+        service apache2 reload
+        add_to_etc_hosts
+    else
+        cecho "Not running as root, did not install apache files." red
+    fi
+}
+
+uninstall()
+{
+    if is_root; then
+        a2dissite "${AppDirName}"
+        service apache2 reload
+        rm "${ConfPath}"
+        remove_from_etc_hosts
+    else
+        cecho "Not running as root, did not change apache files." red
+    fi
+}
+
+# Globalized variables to make available for multiple uses.
+declare AppDirName=$( get_current_directory_name )
+declare ConfPath="/etc/apache2/sites-available/${AppDirName}.conf"
+
+if [ "$1" = 'uninstall' ]; then
+    uninstall
+else
+    install
+fi
+    

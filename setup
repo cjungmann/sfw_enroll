@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+
+source bash_utils
+source bash_mysql
+
+declare DBase="SFW_Enroll"
+
+create_directories()
+{
+    if ! [ -d "site" ]; then
+        cecho "Creating directory 'site'"
+        mkdir site
+        ln -s /usr/local/lib/schemafw/web_includes site/includes
+        cp /usr/local/lib/schemafw/default.xsl site/default.xsl
+    fi
+}
+
+create_database()
+{
+    cecho "Creating database $DBase"
+    mysql -e "CREATE DATABASE ${DBase}"
+    mysql -f "$DBase" < /usr/local/lib/SchemaServer/install/sys_procs.sql
+    if [ "$?" -ne 0 ]; then
+        cecho "Terminating script due to error in sys_procs.sql." red
+        exit 1
+    fi
+}
+
+load_tables()
+{
+    cecho "Creating tables in $DBase"
+    mysql "${DBase}" < setup_files/tables.sql
+    if [ "$?" -ne 0 ]; then
+        cecho "Terminating script due to mysql error." red
+        exit 1
+    fi
+}
+
+create_and_install_session_procs()
+{
+    cecho "Generating session_procs.sql"
+    gensfw_session_procs "${DBase}" Session_Info > setup_files/session_procs.sql
+    cecho "Loading session_procs.sql in $DBase"
+    mysql "${DBase}" < setup_files/session_procs.sql
+    if [ "$?" -ne 0 ]; then
+        cecho "Terminating script due to mysql error." red
+        exit 1
+    fi
+}
+
+install_login_procs()
+{
+    cecho "Loading login procs."
+    mysql "$DBase" < setup_files/login_procs.sql
+    if [ "$?" -ne 0 ]; then
+        cecho "Terminating script due to mysql error." red
+        exit 1
+    fi
+}
+
+add_login_srm_buttons()
+{
+    local target="$1"
+
+    local -a session_types=(
+        first_child login
+        "session-type : establish"
+        --
+        
+        first_child login_submit
+        "session-type : establish"
+        --
+
+        first_child register
+        "session-type : establish"
+        --
+        
+        first_child register_submit
+        "session-type : establish"
+        --
+    )
+
+
+    local -a fix_login=(
+        first_child login/schema
+        button --
+
+        last_child login/schema/button
+        "label : Register New User"
+        --
+        
+        last_child login/schema/button
+        "type : jump"
+        --
+
+        last_child login/schema/button
+        "url : ?register"
+        --
+
+    )
+
+    local -a fix_reg=(
+        first_child register/schema
+        button --
+
+        last_child register/schema/button
+        "label : Login with Existing User"
+        --
+        
+        last_child register/schema/button
+        "type : jump"
+        --
+
+        last_child register/schema/button
+        "url : ?login"
+        --
+    )
+
+    local -a fix_reg_submit=(
+        before_sibling register_submit/result
+        "drop-salt"
+        --
+    )
+
+    local -a all_fixes=(
+        "${session_types[@]}"
+        "${fix_reg[@]}"
+        "${fix_login[@]}"
+        "${fix_reg_submit[@]}"
+        write_file "$target" --
+    )
+
+    cecho "Adding buttons to login and register dialogs in $target"
+    gensfw_srm "$target" "${all_fixes[@]}"
+}
+
+create_login_srm_files()
+{
+    cecho "Generating srm scripts."
+    if ! proc_exists "$DBase" "App_User_Login"; then
+        cecho "Procedure App_User_Login is missing, terminating script." red
+        exit 1
+    else
+        declare target="site/login.srm"
+        echo "\$database       : $DBase"       > "$target"
+        echo "\$xml-stylesheet : default.xsl"  >> "$target"
+        echo "\$default-mode   : login"        >> "$target"
+        echo                                   >> "$target"
+        gensfw_srm_from_proc "$DBase" "App_User_Login" "login"       >> "$target"
+        gensfw_srm_from_proc "$DBase" "App_User_Register" "register" >> "$target"
+
+        cecho "Generated $target"
+
+        add_login_srm_buttons "$target"
+    fi
+}
+
+decimate()
+{
+    mysql -e "DROP DATABASE ${DBase}"
+    rm setup_files/session_procs.sql
+    rm -r site
+}
+
+
+if ! database_exists "${DBase}"; then
+    create_database
+fi
+
+
+if [ "$1" = 'uninstall' ]; then
+    decimate
+else
+    create_directories
+    load_tables
+    create_and_install_session_procs
+    install_login_procs
+    create_login_srm_files
+fi

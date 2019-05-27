@@ -22,3 +22,10 @@ CREATE TABLE IF NOT EXISTS Session_Info
    user_handle VARCHAR(32)
 );
 
+CREATE TABLE IF NOT EXISTS Password_Reset
+(
+   code    CHAR(6),
+   email   VARCHAR(128),
+   expires DATETIME,
+   INDEX(code)
+);

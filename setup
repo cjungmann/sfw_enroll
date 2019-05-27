@@ -124,17 +124,10 @@ add_login_srm_buttons()
         --
     )
 
-    local -a fix_reg_submit=(
-        before_sibling register_submit/result
-        "drop-salt"
-        --
-    )
-
     local -a all_fixes=(
         "${session_types[@]}"
         "${fix_reg[@]}"
         "${fix_login[@]}"
-        "${fix_reg_submit[@]}"
         write_file "$target" --
     )
 

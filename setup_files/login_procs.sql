@@ -42,12 +42,9 @@ CREATE PROCEDURE App_User_Register(email    VARCHAR(128),
 proc_block: BEGIN
    DECLARE name_count INT UNSIGNED;
    DECLARE user_id    INT UNSIGNED;
+   DECLARE new_salt   CHAR(32);
 
-   -- Fatal error for missed salt because it's
-   -- a setup error, not a user input error:
-   IF @dropped_salt IS NULL THEN
-      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='No dropped_salt to encode the password.';
-   END IF;
+   SELECT make_randstr(32) INTO new_salt;
 
    -- Confirm each of the input parameters
    IF email IS NULL OR LENGTH(email) = 0 THEN
@@ -71,14 +68,14 @@ proc_block: BEGIN
 
    INSERT INTO User(email, pword_hash, handle)
           VALUES(email,
-                 ssys_hash_password_with_salt(password, @dropped_salt),
+                 ssys_hash_password_with_salt(password, new_salt),
                  handle);
 
    IF ROW_COUNT() = 1 THEN
       SELECT LAST_INSERT_ID() INTO user_id;
 
       INSERT INTO Salt(id_user, salt)
-           VALUES (user_id, @dropped_salt);
+           VALUES (user_id, new_salt);
 
       IF ROW_COUNT() = 1 THEN
          SELECT 0 as error, 'User created' AS msg;
@@ -94,6 +91,11 @@ proc_block: BEGIN
    ROLLBACK;
    SELECT 1 AS error, CONCAT('Failed to create user. Please try again later.') AS msg;
 
+END $$
+
+DROP PROCEDURE IF EXISTS App_User_Password_Reset_Code $$
+CREATE PROCEDURE App_User_Password_Reset_Code(email VARCHAR(128))
+BEGIN
 END $$
 
 

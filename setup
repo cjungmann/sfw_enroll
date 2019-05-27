@@ -5,6 +5,14 @@ source bash_mysql
 
 declare DBase="SFW_Enroll"
 
+check_prerequisites()
+{
+    if ! mysql -e "SELECT make_randstr(20)" >/dev/null 2>/dev/null; then
+        cecho "make_randstr project (github.com/cjungmann/make_randstr.git) missing." red
+        exit 1
+    fi
+}
+
 create_directories()
 {
     if ! [ -d "site" ]; then
@@ -162,6 +170,8 @@ decimate()
     rm -r site
 }
 
+
+check_prerequisites
 
 if ! database_exists "${DBase}"; then
     create_database

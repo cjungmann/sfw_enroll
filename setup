@@ -44,26 +44,10 @@ load_tables()
     fi
 }
 
-create_and_install_session_procs()
+generate_session_procs()
 {
     cecho "Generating 0_session_procs.sql"
     gensfw_session_procs "${DBase}" Session_Info > setup_files/0_session_procs.sql
-    cecho "Loading 0_session_procs.sql in $DBase"
-    mysql "${DBase}" < setup_files/0_session_procs.sql
-    if [ "$?" -ne 0 ]; then
-        cecho "Terminating script due to mysql error." red
-        exit 1
-    fi
-}
-
-install_login_procs()
-{
-    cecho "Loading login procs."
-    mysql "$DBase" < setup_files/login_procs.sql
-    if [ "$?" -ne 0 ]; then
-        cecho "Terminating script due to mysql error." red
-        exit 1
-    fi
 }
 
 add_login_srm_buttons()
@@ -124,10 +108,25 @@ add_login_srm_buttons()
         --
     )
 
+    local -a fix_submit_types=(
+        set_line
+           "login_submit/type"
+           "<%SET_VALUE>"
+           "form-jump"
+           --
+        
+        set_line
+           "register_submit/type"
+           "<%SET_VALUE>"
+           "form-jump"
+           --
+    )
+
     local -a all_fixes=(
         "${session_types[@]}"
         "${fix_reg[@]}"
         "${fix_login[@]}"
+        "${fix_submit_types[@]}"
         write_file "$target" --
     )
 
@@ -135,7 +134,51 @@ add_login_srm_buttons()
     gensfw_srm "$target" "${all_fixes[@]}"
 }
 
-create_login_srm_files()
+add_login_submit_jumps()
+{
+    local target="$1"
+
+    local -a add_jumps=(
+        set_line
+           "login_submit/result/type"
+           "<%SET_VALUE>"
+           "variables"
+           --
+
+        after_sibling
+           "login_submit/result/type"
+           "jumps"
+           --
+
+        last_child
+           "login_submit/result/jumps"
+           "jump0 : profile.srm"
+           --
+        
+        last_child
+           "login_submit/result/jumps"
+           "jump1 : login.srm"
+           --
+
+        set_line
+           "register_submit/result/type"
+           "<%SET_VALUE>"
+           "variables"
+           --
+
+        copy_as_last_child
+           "register_submit/result"
+           "login_submit/result/jumps"
+           --
+
+        write_file "$target" --
+    )
+
+    cecho "Adding jumps to submit modes in '$target.'"
+    gensfw_srm "$target" "${add_jumps[@]}"
+}
+
+create_login_srm_file()
 {
     cecho "Generating srm scripts."
     if ! proc_exists "$DBase" "App_User_Login"; then
@@ -153,6 +196,47 @@ create_login_srm_files()
         cecho "Generated $target"
 
         add_login_srm_buttons "$target"
+        add_login_submit_jumps "$target"
+    fi
+}
+
+tweak_profile_srm()
+{
+    local target="$1"
+
+    local -a add_procedure=(
+        set_line
+           "profile/type"
+           "<%SET_VALUE>"
+           "form-edit"
+           --
+
+        after_sibling
+           "profile/schema-proc"
+           "procedure : App_User_Profile_Read"
+           --
+
+        write_file "$target" --
+    )
+
+    gensfw_srm "$target" "${add_procedure[@]}"
+}
+
+create_profile_srm_file()
+{
+    cecho "Generating profile.srm"
+    if ! proc_exists "$DBase" "App_User_Profile_Read"; then
+        cecho "Procedure App_User_Profile_Read is missing. Terminating script." red
+        exit 1
+    else
+        declare target="site/profile.srm"
+        echo "\$database       : $DBase"       > "$target"
+        echo "\$xml-stylesheet : default.xsl"  >> "$target"
+        echo "\$default-mode   : profile"        >> "$target"
+        echo                                   >> "$target"
+        gensfw_srm_from_proc "$DBase" "App_User_Profile_Update" "profile" >> "$target"
+
+        tweak_profile_srm "$target"
     fi
 }
 
@@ -176,7 +260,9 @@ if [ "$1" = 'uninstall' ]; then
 else
     create_directories
     load_tables
-    create_and_install_session_procs
-    install_login_procs
-    create_login_srm_files
+    generate_session_procs
+    setup_procs_only
+    create_login_srm_file
+    create_profile_srm_file
+    
 fi

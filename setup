@@ -243,7 +243,7 @@ create_profile_srm_file()
 decimate()
 {
     mysql -e "DROP DATABASE ${DBase}"
-    rm setup_files/session_procs.sql
+    rm setup_files/0_session_procs.sql
     rm -r site
 }
 

@@ -261,7 +261,7 @@ else
     create_directories
     load_tables
     generate_session_procs
-    setup_procs_only
+    ./setup_procs_only
     create_login_srm_file
     create_profile_srm_file
     

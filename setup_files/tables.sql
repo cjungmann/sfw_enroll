@@ -6,6 +6,11 @@ CREATE TABLE IF NOT EXISTS User
    pword_hash BINARY(16),
    handle     VARCHAR(32),
 
+   fname      VARCHAR(32),
+   lname      VARCHAR(32),
+
+   fav_color  VARCHAR(32),
+
    INDEX(email)
 );
 

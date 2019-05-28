@@ -10,7 +10,7 @@ for file in "${files[@]}"; do
     cecho "Loading procedures in '${file}'"
     mysql "${DBase}" < "setup_files/${file}"
     if [ "$?" -ne 0 ]; then
-        cecho "Error encountered in '${file}'.  Terminating command."
+        cecho "Error encountered in '${file}'.  Terminating command." red
         exit 1
     fi
 done

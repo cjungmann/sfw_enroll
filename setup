@@ -46,10 +46,10 @@ load_tables()
 
 create_and_install_session_procs()
 {
-    cecho "Generating session_procs.sql"
-    gensfw_session_procs "${DBase}" Session_Info > setup_files/session_procs.sql
-    cecho "Loading session_procs.sql in $DBase"
-    mysql "${DBase}" < setup_files/session_procs.sql
+    cecho "Generating 0_session_procs.sql"
+    gensfw_session_procs "${DBase}" Session_Info > setup_files/0_session_procs.sql
+    cecho "Loading 0_session_procs.sql in $DBase"
+    mysql "${DBase}" < setup_files/0_session_procs.sql
     if [ "$?" -ne 0 ]; then
         cecho "Terminating script due to mysql error." red
         exit 1

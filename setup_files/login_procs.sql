@@ -26,11 +26,12 @@ BEGIN
       IF user_id IS NULL THEN
          SELECT 1 AS error, 'Invalid credentials' AS msg;
       ELSE
+         -- This generated procedure resides in session_procs.sql:
+         CALL App_Session_Initialize(user_id, user_handle);
+
          SELECT 0 AS error, 'Successful login' AS msg;
       END IF;
 
-         -- This generated procedure resides in session_procs.sql:
-         CALL App_Session_Initialize(user_id, user_handle);
    END IF;
 END $$
 
@@ -78,11 +79,12 @@ proc_block: BEGIN
            VALUES (user_id, new_salt);
 
       IF ROW_COUNT() = 1 THEN
-         SELECT 0 as error, 'User created' AS msg;
          COMMIT;
 
          -- This generated procedure resides in session_procs.sql:
          CALL App_Session_Initialize(user_id, handle);
+
+         SELECT 0 as error, 'User created' AS msg;
 
          LEAVE proc_block;
       END IF;

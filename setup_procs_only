@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+source bash_utils
+source bash_common
+
+declare -a files=( $( ls setup_files | grep "procs.sql\$" ) )
+declare file
+
+for file in "${files[@]}"; do
+    cecho "Loading procedures in '${file}'"
+    mysql "${DBase}" < "setup_files/${file}"
+    if [ "$?" -ne 0 ]; then
+        cecho "Error encountered in '${file}'.  Terminating command."
+        exit 1
+    fi
+done
+
+exit 0

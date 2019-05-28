@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS Session_Info
 (
    id_session  INT UNSIGNED UNIQUE KEY,
    user_id     INT UNSIGNED NULL,
-   user_handle VARCHAR(32)
+   user_handle VARCHAR(32),
+   user_email  VARCHAR(128)
 );
 
 CREATE TABLE IF NOT EXISTS Password_Reset

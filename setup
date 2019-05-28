@@ -3,7 +3,7 @@
 source bash_utils
 source bash_mysql
 
-declare DBase="SFW_Enroll"
+source bash_common
 
 check_prerequisites()
 {

@@ -2,20 +2,18 @@ DELIMITER $$
 
 -- ----------------------------------------------
 DROP PROCEDURE IF EXISTS App_User_Profile_Read $$
-CREATE PROCEDURE App_User_Profile_Read(id INT UNSIGNED,
-                                       email VARCHAR(128))
+CREATE PROCEDURE App_User_Profile_Read()
 BEGIN
    SELECT id, email, handle, fname, lname, fav_color
      FROM User
-    WHERE User.id = id AND User.email = email;
+    WHERE User.id = @session_user_id
+      AND User.email = @session_user_email;
 END $$
 
 -- --------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS App_User_Profile_Update $$
 CREATE PROCEDURE App_User_Profile_Update(id        INT UNSIGNED,
-                                         email     VARCHAR(128),
                                          pword     VARCHAR(20),
-                                         handle    VARCHAR(32),
                                          fname     VARCHAR(32),
                                          lname     VARCHAR(32),
                                          fav_color VARCHAR(32))
@@ -39,10 +37,10 @@ proc_block: BEGIN
           u.lname = lname,
           u.fav_color = fav_color
     WHERE u.id = id
-      AND u.email = email;
+      AND u.email = @session_user_email;
 
    IF ROW_COUNT() > 0 THEN
-      CALL App_User_Profile_Read(id, email);
+      SELECT 0 AS error, 'Changes made.' AS msg;
    END IF;
 
 END $$

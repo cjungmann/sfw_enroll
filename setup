@@ -15,11 +15,23 @@ check_prerequisites()
 
 create_directories()
 {
+    # version should be 'debug' or 'release', and the value determines if
+    # the stylesheet imports from debug.xsl or compiled.xsl (for 'release').
+    local version=debug
+
     if ! [ -d "site" ]; then
         cecho "Creating directory 'site'"
         mkdir site
         ln -s /usr/local/lib/schemafw/web_includes site/includes
-        cp /usr/local/lib/schemafw/default.xsl site/default.xsl
+
+        # Transform default.xsl and write result to site/default.xsl:
+        local -a xslargs=(
+            --stringparam version "${version}"
+            setup_default.xsl
+            /usr/local/lib/schemafw/default.xsl
+            )
+
+        xsltproc "${xslargs[@]}" > site/default.xsl
     fi
 }
 

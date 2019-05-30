@@ -27,7 +27,7 @@ BEGIN
          SELECT 1 AS error, 'Invalid credentials' AS msg;
       ELSE
          -- This generated procedure resides in session_procs.sql:
-         CALL App_Session_Initialize(user_id, user_handle);
+         CALL App_Session_Initialize(user_id, user_handle, email);
 
          SELECT 0 AS error, 'Successful login' AS msg;
       END IF;
@@ -82,7 +82,7 @@ proc_block: BEGIN
          COMMIT;
 
          -- This generated procedure resides in session_procs.sql:
-         CALL App_Session_Initialize(user_id, handle);
+         CALL App_Session_Initialize(user_id, handle, email);
 
          SELECT 0 as error, 'User created' AS msg;
 

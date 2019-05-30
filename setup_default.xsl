@@ -69,7 +69,7 @@
   </xsl:template>
 
   <xsl:template match="html:title | html:h1">
-    <xsl:element name="title">
+    <xsl:element name="{local-name()}">
       <xsl:text>Schema Framework Pattern: Enroll</xsl:text>
     </xsl:element>
   </xsl:template>

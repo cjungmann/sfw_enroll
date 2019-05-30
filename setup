@@ -34,6 +34,21 @@ create_database()
     fi
 }
 
+create_srm_top_material()
+{
+    local target="$1"
+    local default_mode="$2"
+
+    echo "\$database       : $DBase"          > "$target"
+    echo "\$xml-stylesheet : default.xsl"     >> "$target"
+    echo "\$default-mode   : ${default_mode}" >> "$target"
+    echo >> "$target"
+    echo "\$session-type        : identity"            >> "$target"
+    echo "\$test-authorized     : App_Session_Confirm" >> "$target"
+    echo "\$jump-not-authorized : Login.srm"           >> "$target"
+    echo >> "$target"
+}
+
 load_tables()
 {
     cecho "Creating tables in $DBase"
@@ -186,10 +201,9 @@ create_login_srm_file()
         exit 1
     else
         declare target="site/login.srm"
-        echo "\$database       : $DBase"       > "$target"
-        echo "\$xml-stylesheet : default.xsl"  >> "$target"
-        echo "\$default-mode   : login"        >> "$target"
-        echo                                   >> "$target"
+
+        create_srm_top_material "$target" "login"
+
         gensfw_srm_from_proc "$DBase" "App_User_Login" "login"       >> "$target"
         gensfw_srm_from_proc "$DBase" "App_User_Register" "register" >> "$target"
 
@@ -216,6 +230,63 @@ tweak_profile_srm()
            "procedure : App_User_Profile_Read"
            --
 
+        after_sibling
+           "profile/form-action"
+           "title : Edit {@handle} Profile"
+           --
+
+        first_child
+           "profile/schema"
+           "intro : Enter the correct password to make changes."
+           --
+
+        first_child
+           "profile/schema/field:id"
+           "hidden : true"
+           --
+         
+        first_child
+           "profile/schema/field:email"
+           "hidden : true"
+           --
+
+        first_child
+           "profile/schema/field:handle"
+           "hidden : true"
+           --
+
+        first_child
+           "profile/schema/field:pword"
+           "type : password"
+           --
+
+        set_line
+           "profile_submit/type"
+           "<%SET_VALUE>"
+           "form-jump"
+           --
+
+        set_line
+           "profile_submit/result/type"
+           "<%SET_VALUE>"
+           "variables"
+           --
+
+        last_child
+           "profile_submit/result"
+           "jumps"
+           --
+
+        last_child
+           "profile_submit/result/jumps"
+           "jump0 : ?profile"
+           --
+
+        last_child
+           "profile_submit/result/jumps"
+           "jump1 : ?profile"
+           --
+
         write_file "$target" --
     )
 
@@ -230,10 +301,9 @@ create_profile_srm_file()
         exit 1
     else
         declare target="site/profile.srm"
-        echo "\$database       : $DBase"       > "$target"
-        echo "\$xml-stylesheet : default.xsl"  >> "$target"
-        echo "\$default-mode   : profile"        >> "$target"
-        echo                                   >> "$target"
+
+        create_srm_top_material "$target" "profile"
+
         gensfw_srm_from_proc "$DBase" "App_User_Profile_Update" "profile" >> "$target"
 
         tweak_profile_srm "$target"

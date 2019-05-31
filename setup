@@ -17,7 +17,7 @@ transform_and_install_default_xsl()
 {
     # version should be 'debug' or 'release', and the value determines if
     # the stylesheet imports from debug.xsl or compiled.xsl (for 'release').
-    local version=debug
+    local version="${1:-debug}"
     local source=/usr/local/lib/schemafw/default.xsl
 
     # Transform default.xsl and write result to site/default.xsl:
@@ -363,7 +363,7 @@ if [ "$1" = 'uninstall' ]; then
     decimate
 else
     create_directories
-    transform_and_install_default_xsl
+    transform_and_install_default_xsl production
     load_tables
     generate_session_procs
     ./setup_procs_only

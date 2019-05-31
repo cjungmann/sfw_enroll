@@ -22,10 +22,16 @@
   </xsl:template>
 
   <xsl:template match="*">
-    <xsl:element name="{local-name()}">
-      <xsl:apply-templates select="@*" />
-      <xsl:apply-templates select="node()" />
-    </xsl:element>
+    <xsl:copy>
+      <xsl:apply-templates select="@*|node()" />
+    </xsl:copy>
+  </xsl:template>
+
+  <!-- explicitly match root element to preserve xmlns attributes. -->
+  <xsl:template match="xsl:stylesheet">
+    <xsl:copy>
+      <xsl:apply-templates select="@*|node()" />
+    </xsl:copy>
   </xsl:template>
 
   <xsl:template match="@*">

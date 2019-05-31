@@ -21,7 +21,7 @@
     <xsl:apply-templates select="node()" />
   </xsl:template>
 
-  <xsl:template match="*">
+  <xsl:template match="@*|node()">
     <xsl:copy>
       <xsl:apply-templates select="@*|node()" />
     </xsl:copy>
@@ -32,12 +32,6 @@
     <xsl:copy>
       <xsl:apply-templates select="@*|node()" />
     </xsl:copy>
-  </xsl:template>
-
-  <xsl:template match="@*">
-    <xsl:attribute name="{local-name()}">
-      <xsl:value-of select="." />
-    </xsl:attribute>
   </xsl:template>
 
   <xsl:template match="text()"><xsl:value-of select="." /></xsl:template>
@@ -72,6 +66,17 @@
         </xsl:choose>
       </xsl:attribute>
     </xsl:element>
+  </xsl:template>
+
+  <!-- Use parameter to decide which scripts to use. -->
+  <xsl:template match="xsl:apply-templates[@mode='fill_head']/xsl:with-param[@name='jscripts']">
+    <xsl:copy>
+      <xsl:apply-templates select="@*" />
+      <xsl:choose>
+        <xsl:when test="$version = 'debug'">debug</xsl:when>
+        <xsl:otherwise>sfw.min</xsl:otherwise>
+      </xsl:choose>
+    </xsl:copy>
   </xsl:template>
 
   <xsl:template match="html:title | html:h1">

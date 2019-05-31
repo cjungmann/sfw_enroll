@@ -13,25 +13,34 @@ check_prerequisites()
     fi
 }
 
-create_directories()
+transform_and_install_default_xsl()
 {
     # version should be 'debug' or 'release', and the value determines if
     # the stylesheet imports from debug.xsl or compiled.xsl (for 'release').
     local version=debug
+    local source=/usr/local/lib/schemafw/default.xsl
 
+    # Transform default.xsl and write result to site/default.xsl:
+    local -a xslargs=(
+        --stringparam version "${version}"
+        setup_default.xsl
+        "$source"
+    )
+
+    xsltproc "${xslargs[@]}" > site/default.xsl
+    if [ $? -eq 0 ]; then
+        cecho "Transformed '${source}' to site/default.xsl"
+    else
+        cecho "Transformation of '${source}' FAILED" red
+    fi
+}
+
+create_directories()
+{
     if ! [ -d "site" ]; then
         cecho "Creating directory 'site'"
         mkdir site
         ln -s /usr/local/lib/schemafw/web_includes site/includes
-
-        # Transform default.xsl and write result to site/default.xsl:
-        local -a xslargs=(
-            --stringparam version "${version}"
-            setup_default.xsl
-            /usr/local/lib/schemafw/default.xsl
-            )
-
-        xsltproc "${xslargs[@]}" > site/default.xsl
     fi
 }
 
@@ -149,11 +158,24 @@ add_login_srm_buttons()
            --
     )
 
+    local -a set_password_types=(
+        first_child
+        "login/schema/field:password"
+        "type : password"
+        --
+
+        first_child
+        "register/schema/field:password"
+        "type : password"
+        --
+    )
+
     local -a all_fixes=(
         "${session_types[@]}"
         "${fix_reg[@]}"
         "${fix_login[@]}"
         "${fix_submit_types[@]}"
+        "${set_password_types[@]}"
         write_file "$target" --
     )
 
@@ -341,6 +363,7 @@ if [ "$1" = 'uninstall' ]; then
     decimate
 else
     create_directories
+    transform_and_install_default_xsl
     load_tables
     generate_session_procs
     ./setup_procs_only

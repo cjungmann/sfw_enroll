@@ -5,6 +5,8 @@ source bash_mysql
 
 source bash_common
 
+source setup_srm_tweaks
+
 check_prerequisites()
 {
     if ! mysql -e "SELECT make_randstr(20)" >/dev/null 2>/dev/null; then
@@ -65,7 +67,7 @@ create_srm_top_material()
     echo "\$default-mode   : ${default_mode}" >> "$target"
     echo >> "$target"
     echo "\$session-type        : identity"            >> "$target"
-    echo "\$test-authorized     : App_Session_Confirm" >> "$target"
+    echo "\$test_authorized     : App_Session_Confirm" >> "$target"
     echo "\$jump-not-authorized : Login.srm"           >> "$target"
     echo >> "$target"
 }
@@ -86,262 +88,62 @@ generate_session_procs()
     gensfw_session_procs "${DBase}" Session_Info > setup_files/0_session_procs.sql
 }
 
-add_login_srm_buttons()
-{
-    local target="$1"
-
-    local -a session_types=(
-        first_child login
-        "session-type : establish"
-        --
-        
-        first_child login_submit
-        "session-type : establish"
-        --
-
-        first_child register
-        "session-type : establish"
-        --
-        
-        first_child register_submit
-        "session-type : establish"
-        --
-    )
-
-
-    local -a fix_login=(
-        first_child login/schema
-        button --
-
-        last_child login/schema/button
-        "label : Register New User"
-        --
-        
-        last_child login/schema/button
-        "type : jump"
-        --
-
-        last_child login/schema/button
-        "url : ?register"
-        --
-
-    )
-
-    local -a fix_reg=(
-        first_child register/schema
-        button --
-
-        last_child register/schema/button
-        "label : Login with Existing User"
-        --
-        
-        last_child register/schema/button
-        "type : jump"
-        --
-
-        last_child register/schema/button
-        "url : ?login"
-        --
-    )
-
-    local -a fix_submit_types=(
-        set_line
-           "login_submit/type"
-           "<%SET_VALUE>"
-           "form-jump"
-           --
-        
-        set_line
-           "register_submit/type"
-           "<%SET_VALUE>"
-           "form-jump"
-           --
-    )
-
-    local -a set_password_types=(
-        first_child
-        "login/schema/field:password"
-        "type : password"
-        --
-
-        first_child
-        "register/schema/field:password"
-        "type : password"
-        --
-    )
-
-    local -a all_fixes=(
-        "${session_types[@]}"
-        "${fix_reg[@]}"
-        "${fix_login[@]}"
-        "${fix_submit_types[@]}"
-        "${set_password_types[@]}"
-        write_file "$target" --
-    )
-
-    cecho "Adding buttons to login and register dialogs in $target"
-    gensfw_srm "$target" "${all_fixes[@]}"
-}
-
-add_login_submit_jumps()
-{
-    local target="$1"
-
-    local -a add_jumps=(
-        set_line
-           "login_submit/result/type"
-           "<%SET_VALUE>"
-           "variables"
-           --
-
-        after_sibling
-           "login_submit/result/type"
-           "jumps"
-           --
-
-        last_child
-           "login_submit/result/jumps"
-           "jump0 : profile.srm"
-           --
-        
-        last_child
-           "login_submit/result/jumps"
-           "jump1 : login.srm"
-           --
-
-        set_line
-           "register_submit/result/type"
-           "<%SET_VALUE>"
-           "variables"
-           --
-
-        copy_as_last_child
-           "register_submit/result"
-           "login_submit/result/jumps"
-           --
-
-        write_file "$target" --
-    )
-
-    cecho "Adding jumps to submit modes in '$target.'"
-    gensfw_srm "$target" "${add_jumps[@]}"
-}
-
 create_login_srm_file()
 {
-    cecho "Generating srm scripts."
-    if ! proc_exists "$DBase" "App_User_Login"; then
-        cecho "Procedure App_User_Login is missing, terminating script." red
-        exit 1
-    else
-        declare target="site/login.srm"
+    terminate_on_missing_proc "$DBase" App_User_Login
 
-        create_srm_top_material "$target" "login"
+    local target="site/login.srm"
 
-        gensfw_srm_from_proc "$DBase" "App_User_Login" "login"       >> "$target"
-        gensfw_srm_from_proc "$DBase" "App_User_Register" "register" >> "$target"
+    create_srm_top_material "$target" "login"
 
-        cecho "Generated $target"
+    gensfw_srm_from_proc "$DBase" "App_User_Login" "login"       >> "$target"
+    gensfw_srm_from_proc "$DBase" "App_User_Register" "register" >> "$target"
 
-        add_login_srm_buttons "$target"
-        add_login_submit_jumps "$target"
-    fi
+    cecho "Generated $target"
 }
 
-tweak_profile_srm()
+create_home_srm_file()
 {
-    local target="$1"
+    local procname="App_Home_Page"
+    terminate_on_missing_proc "$DBase" "$procname"
 
-    local -a add_procedure=(
-        set_line
-           "profile/type"
-           "<%SET_VALUE>"
-           "form-edit"
-           --
+    local target="site/home.srm"
 
-        after_sibling
-           "profile/schema-proc"
-           "procedure : App_User_Profile_Read"
-           --
+    create_srm_top_material "$target" "home"
 
-        after_sibling
-           "profile/form-action"
-           "title : Edit {@handle} Profile"
-           --
+    local -a lines=(
+        "home"
+        "   procedure : ${procname}"
+        "   type : form-page"
+        "   schema"
+        "   button"
+        "      label : Profile"
+        "      type : open"
+        "      url : profile.srm"
+        "   button"
+        "      label : Logout"
+        "      type : jump"
+        "      url : login.srm?logout"
+        )
 
-        first_child
-           "profile/schema"
-           "intro : Enter the correct password to make changes."
-           --
+    local IFS=$'\n'
+    echo "${lines[*]}" >> "$target"
 
-        first_child
-           "profile/schema/field:id"
-           "hidden : true"
-           --
-         
-        first_child
-           "profile/schema/field:email"
-           "hidden : true"
-           --
-
-        first_child
-           "profile/schema/field:handle"
-           "hidden : true"
-           --
-
-        first_child
-           "profile/schema/field:pword"
-           "type : password"
-           --
-
-        set_line
-           "profile_submit/type"
-           "<%SET_VALUE>"
-           "form-jump"
-           --
-
-        set_line
-           "profile_submit/result/type"
-           "<%SET_VALUE>"
-           "variables"
-           --
-
-        last_child
-           "profile_submit/result"
-           "jumps"
-           --
-
-        last_child
-           "profile_submit/result/jumps"
-           "jump0 : ?profile"
-           --
-
-        last_child
-           "profile_submit/result/jumps"
-           "jump1 : ?profile"
-           --
-
-        write_file "$target" --
-    )
-
-    gensfw_srm "$target" "${add_procedure[@]}"
+    cecho "Generated $target"
 }
 
 create_profile_srm_file()
 {
     cecho "Generating profile.srm"
-    if ! proc_exists "$DBase" "App_User_Profile_Read"; then
-        cecho "Procedure App_User_Profile_Read is missing. Terminating script." red
-        exit 1
-    else
-        declare target="site/profile.srm"
 
-        create_srm_top_material "$target" "profile"
+    terminate_on_missing_proc "$DBase" App_User_Profile_Read
 
-        gensfw_srm_from_proc "$DBase" "App_User_Profile_Update" "profile" >> "$target"
+    local target="site/profile.srm"
 
-        tweak_profile_srm "$target"
-    fi
+    create_srm_top_material "$target" "profile"
+    gensfw_srm_from_proc "$DBase" "App_User_Profile_Update" "profile" >> "$target"
+
+    cecho "Generated $target"
 }
 
 decimate()
@@ -362,12 +164,17 @@ fi
 if [ "$1" = 'uninstall' ]; then
     decimate
 else
+    declare version="${1:-debug}"
+
+    cecho "Preparing website in the '${version}' version." blue
+
     create_directories
-    transform_and_install_default_xsl production
+    transform_and_install_default_xsl "$version"
     load_tables
     generate_session_procs
     ./setup_procs_only
     create_login_srm_file
+    create_home_srm_file
     create_profile_srm_file
-    
+    tweak_srms
 fi

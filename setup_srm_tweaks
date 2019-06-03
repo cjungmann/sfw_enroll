@@ -1,0 +1,255 @@
+#!/usr/bin/env bash
+
+tweak_home_srm()
+{
+    local target="$1"
+
+    local -a add_buttons=(
+    )
+
+
+    local -a add_fixed=(
+        "${add_buttons[@]}"
+    )
+
+    cecho "Tweaking response modes in $target"
+    gensfw_srm "$target" "${all_fixes[@]}" write_file "$target" --
+}
+
+tweak_login_srm()
+{
+    local target="$1"
+
+    local -a add_session_types=(
+        first_child login
+        "session-type : establish"
+        --
+        
+        first_child login_submit
+        "session-type : establish"
+        --
+
+        first_child register
+        "session-type : establish"
+        --
+        
+        first_child register_submit
+        "session-type : establish"
+        --
+    )
+
+    local -a add_login_and_register_jumps=(
+        set_line
+           "login_submit/result/type"
+           "<%SET_VALUE>"
+           "variables"
+           --
+
+        after_sibling
+           "login_submit/result/type"
+           "jumps"
+           --
+
+        last_child
+           "login_submit/result/jumps"
+           "jump0 : home.srm"
+           --
+        
+        last_child
+           "login_submit/result/jumps"
+           "jump1 : login.srm"
+           --
+
+        set_line
+           "register_submit/result/type"
+           "<%SET_VALUE>"
+           "variables"
+           --
+
+        copy_as_last_child
+           "register_submit/result"
+           "login_submit/result/jumps"
+           --
+
+        write_file "$target" --
+    )
+
+    local -a add_login_labels=(
+        first_child login/schema
+        button --
+
+        last_child login/schema/button
+        "label : Register New User"
+        --
+        
+        last_child login/schema/button
+        "type : jump"
+        --
+
+        last_child login/schema/button
+        "url : ?register"
+        --
+
+    )
+
+    local -a add_register_labels=(
+        first_child register/schema
+        button --
+
+        last_child register/schema/button
+        "label : Login with Existing User"
+        --
+        
+        last_child register/schema/button
+        "type : jump"
+        --
+
+        last_child register/schema/button
+        "url : ?login"
+        --
+    )
+
+    local -a reset_submit_types=(
+        set_line
+           "login_submit/type"
+           "<%SET_VALUE>"
+           "form-jump"
+           --
+        
+        set_line
+           "register_submit/type"
+           "<%SET_VALUE>"
+           "form-jump"
+           --
+    )
+
+    local -a set_password_types=(
+        first_child
+           "login/schema/field:password"
+           "type : password"
+           --
+
+        first_child
+           "register/schema/field:password"
+           "type : password"
+           --
+    )
+
+    local -a make_logout_from_login=(
+        copy_after_sibling
+           login
+           login
+           "<%SET_TAG>"
+           "logout"
+           --
+
+        last_child
+           "logout"
+           ""
+           --
+
+        after_sibling
+           "logout/schema_proc"
+           "procedure : App_User_Logout"
+           --
+        )
+
+    local -a all_fixes=(
+        "${add_session_types[@]}"
+        "${add_login_and_register_jumps[@]}"
+        "${add_login_labels[@]}"
+        "${add_register_labels[@]}"
+        "${reset_submit_types[@]}"
+        "${set_password_types[@]}"
+        "${make_logout_from_login[@]}"
+    )
+
+    cecho "Adding buttons to login and register dialogs in $target"
+    gensfw_srm "$target" "${all_fixes[@]}" write_file "$target" --
+}
+
+tweak_profile_srm()
+{
+    local target="$1"
+
+    local -a add_procedure=(
+        set_line
+           "profile/type"
+           "<%SET_VALUE>"
+           "form-edit"
+           --
+
+        after_sibling
+           "profile/schema-proc"
+           "procedure : App_User_Profile_Read"
+           --
+
+        after_sibling
+           "profile/form-action"
+           "title : Edit {@handle} Profile"
+           --
+
+        first_child
+           "profile/schema"
+           "intro : Enter the correct password to make changes."
+           --
+
+        first_child
+           "profile/schema/field:id"
+           "hidden : true"
+           --
+         
+        first_child
+           "profile/schema/field:email"
+           "hidden : true"
+           --
+
+        first_child
+           "profile/schema/field:handle"
+           "hidden : true"
+           --
+
+        first_child
+           "profile/schema/field:pword"
+           "type : password"
+           --
+
+        # set_line
+        #    "profile_submit/type"
+        #    "<%SET_VALUE>"
+        #    "form-jump"
+        #    --
+
+        # set_line
+        #    "profile_submit/result/type"
+        #    "<%SET_VALUE>"
+        #    "variables"
+        #    --
+
+        # last_child
+        #    "profile_submit/result"
+        #    "jumps"
+        #    --
+
+        # last_child
+        #    "profile_submit/result/jumps"
+        #    "jump0 : ?profile"
+        #    --
+
+        # last_child
+        #    "profile_submit/result/jumps"
+        #    "jump1 : ?profile"
+        #    --
+    )
+
+    gensfw_srm "$target" "${add_procedure[@]}" write_file "$target" --
+}
+
+tweak_srms()
+{
+    tweak_login_srm "site/login.srm"
+    tweak_home_srm "site/home.srm"
+    tweak_profile_srm "site/profile.srm"
+}
+
+

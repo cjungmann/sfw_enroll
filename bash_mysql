@@ -66,5 +66,16 @@ proc_exists()
     [ "$count" -eq 1 ]
 }
 
+terminate_on_missing_proc()
+{
+    local dbase="$1"
+    local procname="$2"
+
+    if ! proc_exists "$dbase" "$procname"; then
+        cecho "Procedure '${procname}' is missing. Terminating script." red
+        exit 1
+    fi
+}
+
 
 

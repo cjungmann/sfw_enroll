@@ -35,6 +35,13 @@ BEGIN
    END IF;
 END $$
 
+-- ----------------------------------------
+DROP PROCEDURE IF EXISTS App_User_Logout $$
+CREATE PROCEDURE App_User_Logout()
+BEGIN
+   CALL App_Session_Abandon(@session_confirmed_id);
+END $$
+
 -- ------------------------------------------
 DROP PROCEDURE IF EXISTS App_User_Register $$
 CREATE PROCEDURE App_User_Register(email    VARCHAR(128),

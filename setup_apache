@@ -71,7 +71,7 @@ make_conf()
 install()
 {
     if is_root; then
-        local conf_file_text=$( make_conf "${AppDirName}.cpjj.net" )
+        local conf_file_text=$( make_conf "${AppWebName}.cpjj.net" )
         echo "$conf_file_text" > "${ConfPath}"
         a2ensite "${AppDirName}"
         service apache2 reload
@@ -96,6 +96,10 @@ uninstall()
 # Globalized variables to make available for multiple uses.
 declare AppDirName=$( get_current_directory_name )
 declare ConfPath="/etc/apache2/sites-available/${AppDirName}.conf"
+
+# strip sfw_ prefix, then convert underscores to dashes because
+# underscore URLs don't work/are forbidden:
+declare AppWebName=$( echo "$AppDirName" | sed 's/sfw_//' | sed 's/_/-/g' )
 
 if [ "$1" = 'uninstall' ]; then
     uninstall

@@ -102,9 +102,34 @@ proc_block: BEGIN
 
 END $$
 
-DROP PROCEDURE IF EXISTS App_User_Password_Reset_Code $$
-CREATE PROCEDURE App_User_Password_Reset_Code(email VARCHAR(128))
+-- --------------------------------------------------
+DROP PROCEDURE IF EXISTS App_User_Password_Recover $$
+CREATE PROCEDURE App_User_Password_Recover(email VARCHAR(128))
 BEGIN
+   DECLARE new_code CHAR(6) DEFAULT make_randstr(6);
+   DECLARE count_email INT UNSIGNED DEFAULT 0;
+   DECLARE count_resets INT UNSIGNED DEFAULT 0;
+
+   SELECT COUNT(*) INTO count_email
+     FROM User u
+    WHERE u.email = email;
+
+   UPDATE Password_Reset pw
+      SET pw.code = new_code,
+          pw.expires = ADDTIME(NOW(), '20:0')
+    WHERE pw.email = email;
+
+   IF ROW_COUNT() = 0 THEN
+      INSERT
+        INTO Password_Reset (code, email, expires)
+      VALUES (new_code,
+              email,
+              ADDTIME(NOW(), '20:0'));
+   END IF;
+
+   SELECT *
+     FROM Password_Reset pw
+    WHERE pw.email = email;
 END $$
 
 

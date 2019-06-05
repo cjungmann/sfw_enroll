@@ -26,7 +26,7 @@ DROP PROCEDURE IF EXISTS App_User_Set_Password $$
 CREATE PROCEDURE App_User_Set_Password(id INT UNSIGNED,
                                        password VARCHAR(20))
 BEGIN
-   DECLARE new_salt CHAR(32);
+   DECLARE new_salt CHAR(32) DEFAULT make_randstr(32);
 
    UPDATE User u
           INNER JOIN Salt s ON u.id = s.id_user

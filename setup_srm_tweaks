@@ -1,5 +1,44 @@
 #!/usr/bin/env bash
 
+add_button()
+{
+    local path="$1"
+    local label="$2" 
+    local type="$3"
+    local url="$4"
+
+    local -a cmds=(
+        last_child
+           "$path"
+           "button : working"
+           --
+
+        last_child
+           "${path}/button:working"
+           "label : ${label}"
+           --
+
+        last_child
+           "${path}/button:working"
+           "type : ${type}"
+           --
+           
+        last_child
+           "${path}/button:working"
+           "url : ${url}"
+           --
+
+        set_line
+           "${path}/button:working"
+           "<%SET_VALUE>"
+           " "
+           --
+        )
+
+    local IFS=$'\n'
+    echo "${cmds[*]}"
+}
+
 tweak_home_srm()
 {
     local target="$1"
@@ -75,38 +114,75 @@ tweak_login_srm()
     )
 
     local -a add_login_labels=(
-        first_child login/schema
-        button --
+        first_child
+           login/schema
+           button
+           --
 
-        last_child login/schema/button
-        "label : Register New User"
-        --
+        last_child
+           login/schema/button
+           "label : Register New User"
+           --
         
-        last_child login/schema/button
-        "type : jump"
-        --
+        last_child
+           login/schema/button
+           "type : jump"
+           --
 
-        last_child login/schema/button
-        "url : ?register"
-        --
+        last_child
+           login/schema/button
+           "url : ?register"
+           --
 
+        # Add named button that can be sought for additions
+        after_sibling
+           login/schema/button
+           "button : recover"
+           --
+
+        last_child
+           login/schema/button:recover
+           "label : Recover Password"
+           --
+
+        last_child
+           login/schema/button:recover
+           "type : jump"
+           --
+
+        last_child
+           login/schema/button:recover
+           "url: ?recover"
+           --
+
+        # Remove button's name so it works as a button:
+        set_line
+           login/schema/button:recover
+           "<%SET_VALUE>"
+           ""
+           --
     )
 
     local -a add_register_labels=(
-        first_child register/schema
-        button --
+        first_child
+           register/schema
+           button
+           --
 
-        last_child register/schema/button
-        "label : Login with Existing User"
-        --
+        last_child
+           register/schema/button
+           "label : Login with Existing User"
+           --
         
-        last_child register/schema/button
-        "type : jump"
-        --
+        last_child
+           register/schema/button
+           "type : jump"
+           --
 
-        last_child register/schema/button
-        "url : ?login"
-        --
+        last_child
+           register/schema/button
+           "url : ?login"
+           --
     )
 
     local -a reset_submit_types=(
@@ -154,6 +230,33 @@ tweak_login_srm()
            --
         )
 
+    local -a tweak_recover=(
+        delete
+           recover/schema
+           --
+
+        set_line
+           recover_submit/result/type
+           "<%SET_VALUE>"
+           variables
+           --
+
+        first_child
+           recover_submit/result/type
+           jumps
+           --
+
+        last_child
+           recover_submit/result/type/jumps
+           "jump0 : ?login"
+           --
+
+        last_child
+           recover_submit/result/type/jumps
+           "jump1 : ?recover"
+           --
+    )
+
     local -a all_fixes=(
         "${add_session_types[@]}"
         "${add_login_and_register_jumps[@]}"
@@ -162,6 +265,7 @@ tweak_login_srm()
         "${reset_submit_types[@]}"
         "${set_password_types[@]}"
         "${make_logout_from_login[@]}"
+        "${tweak_recover[@]}"
     )
 
     cecho "Adding buttons to login and register dialogs in $target"
@@ -172,7 +276,12 @@ tweak_profile_srm()
 {
     local target="$1"
 
-    local -a add_procedure=(
+    local IFS=$'\n'
+    local -a pw_button=(
+        $( add_button profile/schema/buttons "Change Password" "open" "?password&id={@id}")
+    )
+
+    local -a make_profile_mode_changes=(
         set_line
            "profile/type"
            "<%SET_VALUE>"
@@ -188,6 +297,13 @@ tweak_profile_srm()
            "profile/form-action"
            "title : Edit {@handle} Profile"
            --
+
+        first_child
+           profile/schema
+           buttons
+           --
+
+        "${pw_button[@]}"
 
         first_child
            "profile/schema"
@@ -210,7 +326,7 @@ tweak_profile_srm()
            --
 
         first_child
-           "profile/schema/field:pword"
+           "profile/schema/field:password"
            "type : password"
            --
 
@@ -242,7 +358,42 @@ tweak_profile_srm()
         #    --
     )
 
-    gensfw_srm "$target" "${add_procedure[@]}" write_file "$target" --
+    local -a make_password_mode_changes=(
+        after_sibling
+           "password/form-action"
+           "qstring : reflect"
+           --
+
+        after_sibling
+           password/form-action
+           "intro: Enter your current password, then type your new password."
+           --
+
+        last_child
+           password/schema/field:id
+           "value : {\$id}"
+           --
+
+        last_child
+           password/schema/field:id
+           "hidden : yes"
+           --
+
+        last_child
+           password/schema/field:old_password
+           "type : password"
+           --
+
+        last_child
+           password/schema/field:new_password
+           "type : password"
+           --
+    )
+
+    local -a all_cmds=( "${make_profile_mode_changes[@]}"
+                        "${make_password_mode_changes[@]}" )
+
+    gensfw_srm "$target" "${all_cmds[@]}" write_file "$target" --
 }
 
 tweak_srms()

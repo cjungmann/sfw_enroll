@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS User
 (
    id         INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-   email      VARCHAR(128),
+   email      VARCHAR(128) UNIQUE,
    pword_hash BINARY(16),
    handle     VARCHAR(32),
 
@@ -30,9 +30,10 @@ CREATE TABLE IF NOT EXISTS Session_Info
 
 CREATE TABLE IF NOT EXISTS Password_Reset
 (
+   user_id INT UNSIGNED,
    code    CHAR(6),
    email   VARCHAR(128),
    expires DATETIME,
-   INDEX(code),
+   INDEX(user_id),
    INDEX(email)
 );

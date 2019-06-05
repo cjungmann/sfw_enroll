@@ -33,5 +33,6 @@ CREATE TABLE IF NOT EXISTS Password_Reset
    code    CHAR(6),
    email   VARCHAR(128),
    expires DATETIME,
-   INDEX(code)
+   INDEX(code),
+   INDEX(email)
 );

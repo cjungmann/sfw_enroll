@@ -103,9 +103,9 @@ create_login_srm_file()
     echo "\$session-type : establish" >> "$target"
     echo >> "$target"
 
-    gensfw_srm_from_proc "$DBase" "App_User_Login" "login"              >> "$target"
-    gensfw_srm_from_proc "$DBase" "App_User_Register" "register"        >> "$target"
-    gensfw_srm_from_proc "$DBase" "App_User_Password_Recover" "recover" >> "$target"
+    gensfw_srm_from_proc "$DBase" "App_User_Login" "login"            >> "$target"
+    gensfw_srm_from_proc "$DBase" "App_User_Register" "register"      >> "$target"
+    gensfw_srm_from_proc "$DBase" "App_User_Password_Rescue" "rescue" >> "$target"
 
     cecho "Generated $target"
 }

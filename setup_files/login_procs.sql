@@ -102,35 +102,60 @@ proc_block: BEGIN
 
 END $$
 
--- --------------------------------------------------
-DROP PROCEDURE IF EXISTS App_User_Password_Recover $$
-CREATE PROCEDURE App_User_Password_Recover(email VARCHAR(128))
+-- ---------------------------------------------------------
+DROP PROCEDURE IF EXISTS App_User_Password_Request_Rescue $$
+CREATE PROCEDURE App_User_Password_Request_Rescue(email VARCHAR(128))
 BEGIN
    DECLARE new_code CHAR(6) DEFAULT make_randstr(6);
-   DECLARE count_email INT UNSIGNED DEFAULT 0;
+   DECLARE user_id INT UNSIGNED;
    DECLARE count_resets INT UNSIGNED DEFAULT 0;
 
-   SELECT COUNT(*) INTO count_email
+   SELECT u.id INTO user_id
      FROM User u
     WHERE u.email = email;
 
-   UPDATE Password_Reset pw
-      SET pw.code = new_code,
-          pw.expires = ADDTIME(NOW(), '20:0')
-    WHERE pw.email = email;
+   IF user_id IS NOT NULL THEN
+      UPDATE Password_Reset pw
+         SET pw.code = new_code,
+             pw.expires = ADDTIME(NOW(), '0:20:0')
+       WHERE pw.user_id = user_id;
 
-   IF ROW_COUNT() = 0 THEN
-      INSERT
-        INTO Password_Reset (code, email, expires)
-      VALUES (new_code,
-              email,
-              ADDTIME(NOW(), '20:0'));
+      IF ROW_COUNT() = 0 THEN
+         INSERT
+           INTO Password_Reset (user_id, code, email, expires)
+         VALUES (user_id,
+                 new_code,
+                 email,
+                 ADDTIME(NOW(), '0:20:0'));
+      END IF;
+
+      SELECT *
+        FROM Password_Reset pw
+       WHERE pw.user_id = user_id;
    END IF;
-
-   SELECT *
-     FROM Password_Reset pw
-    WHERE pw.email = email;
 END $$
 
+-- ------------------------------------------------------
+DROP PROCEDURE IF EXISTS App_User_Password_Rescue $$
+CREATE PROCEDURE App_User_Password_Rescue(email VARCHAR(128),
+                                          code CHAR(6),
+                                          password VARCHAR(20))
+BEGIN
+   DECLARE user_id INT UNSIGNED;
+   DECLARE expires DATETIME;
+
+   SELECT pr.user_id, pr.expires INTO user_id, expires
+     FROM Password_Reset pr
+    WHERE pr.email = email
+      AND pr.code = code;
+
+   IF expires IS NOT NULL AND expires > NOW() THEN
+      CALL App_User_Set_Password(user_id, password);
+      SELECT 0 AS error, 'Password set.' AS msg;
+   ELSE
+      SELECT 1 AS error, 'No rescue is available.' AS msg;
+   END IF;
+
+END $$
 
 DELIMITER ;

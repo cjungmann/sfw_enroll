@@ -137,27 +137,27 @@ tweak_login_srm()
         # Add named button that can be sought for additions
         after_sibling
            login/schema/button
-           "button : recover"
+           "button : rescue"
            --
 
         last_child
-           login/schema/button:recover
-           "label : Recover Password"
+           login/schema/button:rescue
+           "label : Password Rescue"
            --
 
         last_child
-           login/schema/button:recover
+           login/schema/button:rescue
            "type : jump"
            --
 
         last_child
-           login/schema/button:recover
-           "url: ?recover"
+           login/schema/button:rescue
+           "url: ?rescue"
            --
 
         # Remove button's name so it works as a button:
         set_line
-           login/schema/button:recover
+           login/schema/button:rescue
            "<%SET_VALUE>"
            ""
            --
@@ -185,6 +185,7 @@ tweak_login_srm()
            --
     )
 
+
     local -a reset_form_types=(
         set_line
            login/type
@@ -199,7 +200,7 @@ tweak_login_srm()
            --
 
         set_line
-           recover/type
+           rescue/type
            "<%SET_VALUE>"
            form-page
            --
@@ -227,6 +228,11 @@ tweak_login_srm()
 
         first_child
            "register/schema/field:password"
+           "type : password"
+           --
+
+        first_child
+           "rescue/schema/field:password"
            "type : password"
            --
     )

@@ -96,8 +96,9 @@ create_login_srm_file()
 
     create_srm_top_material "$target" "login"
 
-    gensfw_srm_from_proc "$DBase" "App_User_Login" "login"       >> "$target"
-    gensfw_srm_from_proc "$DBase" "App_User_Register" "register" >> "$target"
+    gensfw_srm_from_proc "$DBase" "App_User_Login" "login"              >> "$target"
+    gensfw_srm_from_proc "$DBase" "App_User_Register" "register"        >> "$target"
+    gensfw_srm_from_proc "$DBase" "App_User_Password_Recover" "recover" >> "$target"
 
     cecho "Generated $target"
 }
@@ -141,7 +142,8 @@ create_profile_srm_file()
     local target="site/profile.srm"
 
     create_srm_top_material "$target" "profile"
-    gensfw_srm_from_proc "$DBase" "App_User_Profile_Update" "profile" >> "$target"
+    gensfw_srm_from_proc "$DBase" "App_User_Profile_Update" "profile"   >> "$target"
+    gensfw_srm_from_proc "$DBase" "App_User_Change_Password" "password" >> "$target"
 
     cecho "Generated $target"
 }

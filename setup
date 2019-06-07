@@ -80,11 +80,18 @@ add_srm_session_top_material()
 load_tables()
 {
     cecho "Creating tables in $DBase"
-    mysql "${DBase}" < setup_files/tables.sql
-    if [ "$?" -ne 0 ]; then
-        cecho "Terminating script due to mysql error." red
-        exit 1
-    fi
+
+    declare -a files=( $( ls setup_files | grep "^tables" ) )
+    declare file
+
+    for file in "${files[@]}"; do
+        cecho "Loading tables in '${file}'"
+        mysql "${DBase}" < "setup_files/${file}"
+        if [ "$?" -ne 0 ]; then
+            cecho "Error encountered in '${file}'.  Terminating command." red
+            exit 1
+        fi
+    done
 }
 
 generate_session_procs()

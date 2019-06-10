@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+export_cookies()
+{
+    cd site
+
+    local line
+    local IFS=$'\n'
+    local -a cookie_lines
+    local -a cookie
+    local -a cookies=()
+
+    cookie_lines=( $( schema.fcgi login.srm 2>&1 | grep "^Set-Cookie" ) )
+
+    local IFS=": "
+    for line in "${cookie_lines[@]}"; do
+        cookie=( $line )
+        cookies+=( "${cookie[1]}" )
+    done
+
+    IFS=';'
+    eval "export HTTP_COOKIE=\"${cookies[*]}\""
+
+    cd ..
+}
+
+if [ "$SHLVL" -ne 1 ]; then
+    echo "Usage: source sfwlogin"
+    echo
+    echo "You must run as source so environment changes persist."
+    echo
+else
+    export_cookies
+    echo "New cookie values are [1;32m$HTTP_COOKIE[0m"
+fi

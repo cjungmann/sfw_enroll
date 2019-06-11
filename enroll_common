@@ -2,3 +2,4 @@
 
 declare DBase="SFW_Enroll"
 
+declare -a SRMt_Tables=()

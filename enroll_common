@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+declare DBase="SFW_Enroll"
+

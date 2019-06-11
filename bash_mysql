@@ -45,6 +45,18 @@ table_exists()
     [ "$count" -eq 1 ]
 }
 
+tables_list()
+{
+    local dbname="$1"
+    local -a query=(
+        "SELECT TABLE_NAME"
+        "FROM information_schema.TABLES"
+        "WHERE TABLE_SCHEMA='${dbname}'"
+        )
+
+    mysql -BN -e "${query[*]}"
+}
+
 proc_exists()
 {
     local dbname="$1"

@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+source bash_common  # should include string variable Dbase and array variable SRM_Tables
+source bash_utils
+source bash_mysql
+
+add_to_autoload()
+{
+    local srmname="$1"
+    local target="site/autoload.srm"
+
+    if ! [ -f "$target" ]; then
+        touch "$target"
+    fi
+
+    if ! [ $( grep "autoload_page" "$target" ) ]; then
+        echo "\$shared : autoload_page" > "$target"
+        echo "   navigation" >> "$target"
+    fi
+
+    if ! [ $( grep "url\s*:\s*${srmname}.srm" "$target" ) ]; then
+        echo "      target"                    >> "$target"
+        echo "         label : ${srmname}"     >> "$target"
+        echo "         url   : ${srmname}.srm" >> "$target"
+    fi
+}
+
+make_table_srms()
+{
+    if ! [ -d generated ]; then
+        mkdir generated
+    fi
+
+    cd generated
+
+    cecho "About to process tables from '$DBase'" green
+
+    local tname
+    for tname in "$@"; do
+        cecho "Processing table '$tname'." blue
+        gensfw -d "$DBase" -t "$tname" -c save
+        mv "${tname}.srm" ../site
+
+        cecho "Loading generated procedures from '${tname}.sql'"
+        mysql "$DBase" < "${tname}.sql"
+    done
+
+    cd ..
+}
+
+make_autoload_srm()
+{
+    local table="$1"
+    for table in "$@"; do
+        add_to_autoload "$table"
+    done
+}
+
+
+make_table_srms "${SRM_Tables[@]}"
+make_autoload_srm "${SRM_Tables[@]}"
+

@@ -15,6 +15,15 @@ check_prerequisites()
     fi
 }
 
+check_apache_indexes()
+{
+    local results=$( grep -B4 'Options.*Indexes' /etc/apache2/apache2.conf )
+    if [ $? -eq 0 ]; then
+        cecho "Some directories in /etc/apache2/apache2.conf include 'Options Indexes'." red
+        cecho "Confirm that you truely want Options Indexes." red
+    fi
+}
+
 transform_and_install_default_xsl()
 {
     # version should be 'debug' or 'release', and the value determines if
@@ -107,8 +116,7 @@ create_login_srm_file()
     local target="site/login.srm"
 
     create_srm_top_material "$target" "login"
-    echo "\$session-type : establish" >> "$target"
-    echo >> "$target"
+    add_srm_session_top_material "$target"
 
     gensfw_srm_from_proc "$DBase" "App_User_Login" "login"            >> "$target"
     gensfw_srm_from_proc "$DBase" "App_User_Register" "register"      >> "$target"
@@ -183,6 +191,8 @@ if [ "$1" = 'uninstall' ]; then
     decimate
 else
     declare version="${1:-debug}"
+
+    check_apache_indexes
 
     cecho "Preparing website in the '${version}' version." blue
 

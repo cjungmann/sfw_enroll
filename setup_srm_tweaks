@@ -59,23 +59,21 @@ tweak_login_srm()
 {
     local target="$1"
 
-    # local -a add_session_types=(
-    #     first_child login
-    #     "session-type : establish"
-    #     --
-        
-    #     first_child login_submit
-    #     "session-type : establish"
-    #     --
+    local -a add_session_types=(
+        label
+           Login_Sessions
+           --
 
-    #     first_child register
-    #     "session-type : establish"
-    #     --
-        
-    #     first_child register_submit
-    #     "session-type : establish"
-    #     --
-    # )
+        first_child
+           '*[type][!session-type]'
+           "session-type : establish"
+           --
+
+        goto
+          Login_Sessions
+          '*[type][!session-type]'
+          --
+    )
 
     local -a add_login_and_register_jumps=(
         set_line
@@ -284,7 +282,7 @@ tweak_login_srm()
     )
 
     local -a all_fixes=(
-        # "${add_session_types[@]}"
+        "${add_session_types[@]}"
         "${add_login_and_register_jumps[@]}"
         "${add_login_labels[@]}"
         "${add_register_labels[@]}"

@@ -70,6 +70,24 @@ proc_block: BEGIN
       LEAVE proc_block;
    END IF;
 
+   SELECT COUNT(*) INTO user_count
+     FROM User
+    WHERE User.email = email;
+
+   IF user_count > 0 THEN
+      SELECT 6 AS error, 'That email is already in use.' AS msg;
+      LEAVE proc_block;
+   END IF;
+
+   SELECT COUNT(*) INTO user_count
+     FROM User
+    WHERE User.handle = handle;
+
+   IF user_count > 0 THEN
+      SELECT 7 AS error, 'That handle is already in use.' AS msg;
+      LEAVE proc_block;
+   END IF;
+
    -- Create the User and Salt table records:
 
    START TRANSACTION;

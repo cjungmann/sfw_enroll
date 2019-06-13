@@ -174,8 +174,12 @@ create_profile_srm_file()
 
 decimate()
 {
+    cecho "Dropping database '${DBase}'" blue
+    cecho "You may need to stop or reload Apache if the next command stalls." blue
     mysql -e "DROP DATABASE ${DBase}"
+    cecho "Deleting generated procedure files." blue
     rm setup_files/0_session_procs.sql
+    cecho "Deleting site directory." blue
     rm -r site
 }
 

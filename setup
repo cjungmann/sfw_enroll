@@ -24,26 +24,41 @@ check_apache_indexes()
     fi
 }
 
-transform_and_install_default_xsl()
+transform_and_install_framework_stylesheet()
+{
+    local ssname="$1"
+    local version="$2"
+
+    local source="/usr/local/lib/schemafw/$ssname"
+
+    if [ -f "$source" ]; then
+        # Transform default.xsl and write result to site/default.xsl:
+        local -a xslargs=(
+            --stringparam version "${version}"
+            setup_default.xsl
+            "$source"
+        )
+
+        xsltproc "${xslargs[@]}" > "site/$ssname"
+        if [ $? -eq 0 ]; then
+            cecho "Transformed '${source}' to site/$ssname"
+        else
+            cecho "Transformation of '${source}' FAILED" red
+        fi
+    else
+        cecho "Failed to find '$ssname' at '$source'" red
+        exit 1
+    fi
+}
+
+transform_and_install_stylesheets()
 {
     # version should be 'debug' or 'release', and the value determines if
     # the stylesheet imports from debug.xsl or compiled.xsl (for 'release').
     local version="${1:-debug}"
-    local source=/usr/local/lib/schemafw/default.xsl
 
-    # Transform default.xsl and write result to site/default.xsl:
-    local -a xslargs=(
-        --stringparam version "${version}"
-        setup_default.xsl
-        "$source"
-    )
-
-    xsltproc "${xslargs[@]}" > site/default.xsl
-    if [ $? -eq 0 ]; then
-        cecho "Transformed '${source}' to site/default.xsl"
-    else
-        cecho "Transformation of '${source}' FAILED" red
-    fi
+    transform_and_install_framework_stylesheet "default.xsl" "$version"
+    transform_and_install_framework_stylesheet "jump.xsl" "$version"
 }
 
 create_directories()
@@ -201,7 +216,7 @@ else
     cecho "Preparing website in the '${version}' version." blue
 
     create_directories
-    transform_and_install_default_xsl "$version"
+    transform_and_install_stylesheets "$version"
     load_tables
     generate_session_procs
     ./setup_procs_only
